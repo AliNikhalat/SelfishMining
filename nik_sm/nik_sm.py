@@ -42,6 +42,9 @@ class NikSelfishMining:
         self.__private_chain_weight = [0 for _ in range(max_tow_block_number)]
         self.__public_chain_weight = [0 for _ in range(max_tow_block_number)]
         self.__current_block_tow = 1
+        self.__average_tow = self.time_window.get_average_tow()
+
+        self.__fork_created = False
 
     @property
     def alpha(self):
@@ -119,7 +122,7 @@ class NikSelfishMining:
             self.__selfish_miners_win_block += 1
             return
 
-        if self.__delta < self.__predicted_K / 2 and self.__current_block_tow > self.time_window.get_average_tow() * 0.4:
+        if self.__delta < self.__predicted_K / 2 and self.__current_block_tow > self.__average_tow * 0.8:
             # self.log('1')
             self.__published = True
 
@@ -128,13 +131,17 @@ class NikSelfishMining:
     def start_honest_mining(self):
         # self.log('starting honest mining!')
 
+        if self.__delta == 0 and self.__private_chain_length == 0:
+            self.__honest_miners_win_block += 1
+            return
+
         self.__public_chain_length += 1
         self.calculating_delta()
 
         if self.__published:
             return
 
-        if self.__current_block_tow > self.time_window.get_average_tow() * 0.4:
+        if self.__current_block_tow > self.__average_tow * 0.8:
             if self.__delta == self.__predicted_K - 1:
                 # self.log('2')
                 # Risk & Continue to mine
@@ -163,7 +170,7 @@ class NikSelfishMining:
             if self.__public_chain_weight[self.__private_chain_length] == 0:
                 self.__private_chain_weight[self.__private_chain_length] = 1
         else:
-            if self.__private_chain_weight[self.__public_chain_length] == 0:
+            if self.__private_chain_weight[self.__public_chain_length] == 0 and self.__fork_created == True:
                 self.__public_chain_weight[self.__public_chain_length] = 1
 
         return
