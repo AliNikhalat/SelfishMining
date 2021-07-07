@@ -122,7 +122,7 @@ class NikSelfishMining:
 
         self.__private_chain_length += 1
 
-        if self.__delta == 0 and self.tow_number >= 0.8 * self.__average_tow:
+        if self.__delta == 0 and self.__current_block_tow >= 0.8 * self.__average_tow:
             self.chain_evaluation()
             self.reset_attack()
 
@@ -141,7 +141,11 @@ class NikSelfishMining:
 
         self.__public_chain_length += 1
 
-        if self.__delta == 0 and self.__private_chain_length == 0:
+        if self.__delta > 0 and self.__current_block_tow >= 0.8 * self.__average_tow:
+            self.chain_evaluation()
+            self.reset_attack()
+
+        elif self.__delta == 0 and self.__private_chain_length == 0:
             self.chain_evaluation()
             self.reset_attack()
 
@@ -150,7 +154,9 @@ class NikSelfishMining:
             self.reset_attack()
 
         elif self.__delta < self.__predicted_K + 1:
-            pass
+            if self.__private_chain_weight > self.__public_chain_weight:
+                self.chain_evaluation()
+                self.reset_attack()
 
         elif self.__delta == self.__predicted_K + 1:
             self.chain_evaluation()
