@@ -38,13 +38,16 @@ class NikSelfishMining:
 
         self.__predicted_K = 2
 
-        self.__published = False
-        self.__private_chain_weight = [0 for _ in range(max_tow_block_number)]
-        self.__public_chain_weight = [0 for _ in range(max_tow_block_number)]
+        self.__private_chain_weight_list = [
+            0 for _ in range(max_tow_block_number)]
+        self.__public_chain_weight_list = [
+            0 for _ in range(max_tow_block_number)]
+
+        self.__private_chain_weight = 0
+        self.__public_chain_weight = 0
+
         self.__current_block_tow = 1
         self.__average_tow = self.time_window.get_average_tow()
-
-        self.__fork_created = False
 
     @property
     def alpha(self):
@@ -86,6 +89,8 @@ class NikSelfishMining:
         for _ in range(iteration):
             #self.log("found a new block")
 
+            self.calculating_delta()
+
             random_number = random.random()
 
             # Mining Process
@@ -116,48 +121,45 @@ class NikSelfishMining:
         #self.log('starting selfish mining!')
 
         self.__private_chain_length += 1
-        self.calculating_delta()
 
-        if self.__published:
-            self.__selfish_miners_win_block += 1
-            return
+        if self.__delta == 0 and self.tow_number >= 0.8 * self.__average_tow:
+            self.chain_evaluation()
+            self.reset_attack()
 
-        if self.__delta < self.__predicted_K / 2 and self.__current_block_tow > self.__average_tow * 0.8:
-            # self.log('1')
-            self.__published = True
+        elif self.__delta == 0 and self.__private_chain_length == 2:
+            self.chain_evaluation
+            self.reset_attack()
+
+        elif self.__delta == 1 and self.__private_chain_length == 3:
+            self.chain_evaluation()
+            self.reset_attack()
 
         return
 
     def start_honest_mining(self):
         # self.log('starting honest mining!')
 
-        if self.__delta == 0 and self.__private_chain_length == 0:
-            self.__honest_miners_win_block += 1
-            return
-
         self.__public_chain_length += 1
-        self.calculating_delta()
 
-        if self.__published:
-            return
+        if self.__delta == 0 and self.__private_chain_length == 0:
+            self.chain_evaluation()
+            self.reset_attack()
 
-        if self.__current_block_tow > self.__average_tow * 0.8:
-            if self.__delta == self.__predicted_K - 1:
-                # self.log('2')
-                # Risk & Continue to mine
-                return
-            elif self.__delta == self.__predicted_K - 2:
-                # self.log('3')
-                # self.__published = True
-                return
-            else:
-                # self.log('4')
-                self.__published = True
-                return
-        else:
-            # self.log('5')
-            # Risk & Continue to mine
-            return
+        elif self.__delta == 0 and self.__public_chain_length == 2:
+            self.chain_evaluation()
+            self.reset_attack()
+
+        elif self.__delta < self.__predicted_K + 1:
+            pass
+
+        elif self.__delta == self.__predicted_K + 1:
+            self.chain_evaluation()
+            self.reset_attack()
+
+        elif self.__delta > self.__predicted_K + 1:
+            pass
+
+        return
 
     def calculating_delta(self):
         self.__delta = self.__private_chain_length - self.__public_chain_length
@@ -167,11 +169,11 @@ class NikSelfishMining:
 
     def calculating_weight(self, is_private_block):
         if is_private_block:
-            if self.__public_chain_weight[self.__private_chain_length] == 0:
-                self.__private_chain_weight[self.__private_chain_length] = 1
+            self.__private_chain_weight_list[self.__private_chain_length] = 1
+            self.__public_chain_weight_list[self.__private_chain_length] = 0
         else:
-            if self.__private_chain_weight[self.__public_chain_length] == 0 and self.__fork_created == True:
-                self.__public_chain_weight[self.__public_chain_length] = 1
+            self.__private_chain_weight_list[self.__public_chain_length] = 0
+            self.__public_chain_weight_list[self.__public_chain_length] = 1
 
         return
 
@@ -184,16 +186,16 @@ class NikSelfishMining:
             self.__honest_miners_win_block += self.__public_chain_length
         else:
             # Decision based on Wight
-            private_chain_weight = sum(self.__private_chain_weight)
-            public_chain_weight = sum(self.__public_chain_weight)
+            self.__private_chain_weight = sum(self.__private_chain_weight_list)
+            self.__public_chain_weight = sum(self.__public_chain_weight_list)
 
-            if private_chain_weight > public_chain_weight:
+            if self.__private_chain_weight > self.__public_chain_weight:
                 self.__selfish_miners_win_block += self.__private_chain_length
-            elif public_chain_weight > private_chain_weight:
+            elif self.__public_chain_weight > self.__private_chain_weight:
                 self.__honest_miners_win_block += self.__public_chain_length
             else:
                 random_number = random.random()
-                if random_number < 0.5:
+                if random_number < self.gamma:
                     self.__selfish_miners_win_block += self.__private_chain_length
                 else:
                     self.__honest_miners_win_block += self.__public_chain_length
@@ -247,12 +249,27 @@ class NikSelfishMining:
         return
 
     def reset_tow(self):
-        self.__published = False
-        self.__private_chain_weight = [
+        self.__private_chain_weight_list = [
             0 for _ in range(self.max_tow_block_number)]
-        self.__public_chain_weight = [
+        self.__public_chain_weight_list = [
             0 for _ in range(self.max_tow_block_number)]
+
         self.__current_block_tow = 1
+
+        self.__private_chain_weight = 0
+        self.__public_chain_weight = 0
+
+        self.__private_chain_length = 0
+        self.__public_chain_length = 0
+
+    def reset_attack(self):
+        self.__private_chain_weight_list = [
+            0 for _ in range(self.max_tow_block_number)]
+        self.__public_chain_weight_list = [
+            0 for _ in range(self.max_tow_block_number)]
+
+        self.__private_chain_weight = 0
+        self.__public_chain_weight = 0
 
         self.__private_chain_length = 0
         self.__public_chain_length = 0

@@ -15,4 +15,4 @@ selfish_mining_nik.gamma = 0.5
 selfish_mining_nik.start_simulate(iteration_number)
 selfish_mining_nik.print_final_result()
 
-selfish_mining_nik.visualize_data(iteration_number)
+# selfish_mining_nik.visualize_data(iteration_number)
