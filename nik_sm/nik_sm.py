@@ -38,7 +38,7 @@ class NikSelfishMining:
 
         self.__iteration_number = 0
 
-        self.__predicted_K = 2
+        self.__predicted_K = 3
 
         self.__private_chain_weight_list = [
             0 for _ in range(self.weight_size)]
@@ -149,11 +149,11 @@ class NikSelfishMining:
             self.chain_evaluation()
             self.reset_attack()
 
-        elif self.__delta == 3:
+        elif self.__delta == self.__predicted_K + 1:
             self.chain_evaluation()
             self.reset_attack()
 
-        elif self.__delta > 3:
+        elif self.__delta > self.__predicted_K + 1:
             pass
 
         return
