@@ -8,11 +8,11 @@ max_tow_block_number = 6
 
 selfish_mining_nik = NikSelfishMining(
     tow_number, min_tow_block_number, max_tow_block_number, False)
-selfish_mining_nik.alpha = 0.48
+selfish_mining_nik.alpha = 0.45
 selfish_mining_nik.gamma = 0.5
 # selfish_mining_nik.print_input_statistic()
 
 selfish_mining_nik.start_simulate(iteration_number)
 selfish_mining_nik.print_final_result()
 
-# selfish_mining_nik.visualize_data(iteration_number)
+selfish_mining_nik.visualize_data(iteration_number)
