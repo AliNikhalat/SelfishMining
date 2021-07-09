@@ -1,6 +1,7 @@
 # Nik Defence
 from block_creation_status import BlockCreationStatus
 from time_window import TimeWindow
+from learning_automata.variable_action_set import VariableActionSet
 import random
 from matplotlib import pyplot as plt
 
@@ -38,7 +39,7 @@ class NikSelfishMining:
 
         self.__iteration_number = 0
 
-        self.__predicted_K = 3
+        self.__predicted_K = 2
 
         self.__private_chain_weight_list = [
             0 for _ in range(self.weight_size)]
@@ -49,7 +50,15 @@ class NikSelfishMining:
         self.__public_chain_weight = 0
 
         self.__current_block_tow = 1
-        self.__average_tow = self.time_window.get_average_tow()
+
+        self.min_K = 1
+        self.max_K = 3
+
+        self.__weight_decision = False
+        self.__weight_decision_number = 0
+
+        self.vasla = VariableActionSet(3, 0.01, 0.01)
+        self.__first_la_decision = True
 
     @property
     def alpha(self):
@@ -84,12 +93,12 @@ class NikSelfishMining:
         return
 
     def start_simulate(self, iteration):
-        #self.log('start simulating')
+        # self.log('start simulating')
 
         self.__iteration_number = iteration
 
         for _ in range(iteration):
-            #self.log("found a new block")
+            # self.log("found a new block")
 
             self.calculating_delta()
 
@@ -107,12 +116,21 @@ class NikSelfishMining:
             if block_creation_response == BlockCreationStatus.EndTow:
                 # self.chain_evaluation()
                 # self.reset_tow()
+
+                if self.__weight_decision == True:
+                    self.__weight_decision_number += 1
+                    self.__weight_decision = False
+
                 self.__current_block_tow = 1
             elif block_creation_response == BlockCreationStatus.EndTimeWindow:
                 self.time_window = TimeWindow(
                     self.tow_number, self.min_tow_block_number, self.max_tow_block_number)
                 # self.chain_evaluation()
                 # self.reset_tow()
+
+                self.learning_automata_decision()
+                self.__first_la_decision = False
+
                 self.__current_block_tow = 1
             else:
                 self.__current_block_tow += 1
@@ -122,7 +140,7 @@ class NikSelfishMining:
         return
 
     def start_selfish_mining(self):
-        #self.log('starting selfish mining!')
+        # self.log('starting selfish mining!')
 
         self.__private_chain_length += 1
 
@@ -183,6 +201,8 @@ class NikSelfishMining:
             # Decision based on Length
             self.__honest_miners_win_block += self.__public_chain_length
         else:
+            self.__weight_decision = True
+
             # Decision based on Wight
             self.__private_chain_weight = sum(self.__private_chain_weight_list)
             self.__public_chain_weight = sum(self.__public_chain_weight_list)
@@ -197,6 +217,33 @@ class NikSelfishMining:
                     self.__selfish_miners_win_block += self.__private_chain_length
                 else:
                     self.__honest_miners_win_block += self.__public_chain_length
+
+        return
+
+    def learning_automata_decision(self):
+        if not self.__first_la_decision:
+            beta = 1 - (self.__weight_decision_number / self.tow_number)
+            self.vasla.receive_environment_signal(beta)
+
+        self.__weight_decision_number = 0
+
+        chosen_action = 0
+        if self.__predicted_K == self.min_K:
+            chosen_action = self.vasla.choose_action([0, 1])
+        elif self.__predicted_K == self.max_K:
+            chosen_action = self.vasla.choose_action([1, 2])
+        else:
+            chosen_action = self.vasla.choose_action([0, 1, 2])
+
+        if chosen_action == 0:
+            # Grow
+            self.__predicted_K += 1
+        elif chosen_action == 1:
+            # Stop
+            pass
+        elif chosen_action == 2:
+            # Shrink
+            self.__predicted_K -= 1
 
         return
 
