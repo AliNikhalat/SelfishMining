@@ -1,6 +1,11 @@
 # first strategy by using Sirer Aritcla published in 2014
-import random
-from matplotlib import pyplot as plt
+import sys
+import os
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..')))
+
+import random  # NOQA
+from matplotlib import pyplot as plt  # NOQA
 
 
 class SelfishMiningOne:
@@ -52,6 +57,14 @@ class SelfishMiningOne:
         self._gamma = value
 
         return
+
+    @property
+    def revenue(self):
+        return self.__selfish_miner_revenue
+
+    @property
+    def stale_block(self):
+        return self.__total_stale_block
 
     def print_input_statistic(self):
         print('alpha is : {}'.format(self._alpha))

@@ -1,21 +1,28 @@
-# Nik Defence
-from block_creation_status import BlockCreationStatus
-from time_window import TimeWindow
-from learning_automata.variable_action_set import VariableActionSet
-import random
-from matplotlib import pyplot as plt
+import sys
+import os
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..')))
+
+import random  # NOQA
+from matplotlib import pyplot as plt  # NOQA
+
+# Nik Defense
+from nik_sm.block_creation_status import BlockCreationStatus  # NOQA
+from nik_sm.time_window import TimeWindow  # NOQA
+from nik_sm.learning_automata.variable_action_set import VariableActionSet  # NOQA
 
 
 class NikSelfishMining:
-    def __init__(self, tow_number, min_tow_block_number, max_tow_block_number, show_log=False):
+    def __init__(self, tow_number, min_tow_block_number, max_tow_block_number,
+                 reward_rate, penalty_rate, min_k, max_k, show_log=False):
         self._alpha = 0
         self._gamma = 0
 
         self.weight_size = 10000
 
-        self.tow_number = tow_number
-        self.min_tow_block_number = min_tow_block_number
-        self.max_tow_block_number = max_tow_block_number
+        self.__tow_number = tow_number
+        self.__min_tow_block_number = min_tow_block_number
+        self.__max_tow_block_number = max_tow_block_number
 
         self.time_window = TimeWindow(
             tow_number, min_tow_block_number, max_tow_block_number)
@@ -51,13 +58,17 @@ class NikSelfishMining:
 
         self.__current_block_tow = 1
 
-        self.min_K = 1
-        self.max_K = 3
+        self.min_K = min_k
+        self.max_K = max_k
 
         self.__weight_decision = False
         self.__weight_decision_number = 0
 
-        self.vasla = VariableActionSet(3, 0.01, 0.01)
+        self.__reward_rate = reward_rate
+        self.__penalty_rate = penalty_rate
+
+        self.vasla = VariableActionSet(
+            3, self.__reward_rate, self.__penalty_rate)
         self.__first_la_decision = True
 
     @property
@@ -85,6 +96,14 @@ class NikSelfishMining:
         self._gamma = value
 
         return
+
+    @property
+    def revenue(self):
+        return self.__selfish_miner_revenue
+
+    @property
+    def stale_block(self):
+        return self.__total_stale_block
 
     def print_input_statistic(self):
         print('alpha is : {}'.format(self._alpha))
@@ -124,7 +143,7 @@ class NikSelfishMining:
                 self.__current_block_tow = 1
             elif block_creation_response == BlockCreationStatus.EndTimeWindow:
                 self.time_window = TimeWindow(
-                    self.tow_number, self.min_tow_block_number, self.max_tow_block_number)
+                    self.__tow_number, self.__min_tow_block_number, self.__max_tow_block_number)
                 # self.chain_evaluation()
                 # self.reset_tow()
 
@@ -222,7 +241,7 @@ class NikSelfishMining:
 
     def learning_automata_decision(self):
         if not self.__first_la_decision:
-            beta = 1 - (self.__weight_decision_number / self.tow_number)
+            beta = 1 - (self.__weight_decision_number / self.__tow_number)
             self.vasla.receive_environment_signal(beta)
 
         self.__weight_decision_number = 0
@@ -265,22 +284,22 @@ class NikSelfishMining:
 
         self.print_input_statistic()
 
-        print('honest miners win block is : {}'.format(
+        print('Nik honest miners win block is : {}'.format(
             self.__honest_miners_win_block))
-        print('selfish miners win block is : {}'.format(
+        print('Nik selfish miners win block is : {}'.format(
             self.__selfish_miners_win_block))
 
-        print('total mined block is : {}'.format(self.__total_mined_block))
-        print('total stale block is : {}'.format(self.__total_stale_block))
+        print('Nik total mined block is : {}'.format(self.__total_mined_block))
+        print('Nik total stale block is : {}'.format(self.__total_stale_block))
 
-        print('honest miner revenue is : {}'.format(
+        print('Nik honest miner revenue is : {}'.format(
             self.__honest_miner_revenue))
-        print('selfish miner revenue is : {}'.format(
+        print('Nik selfish miner revenue is : {}'.format(
             self.__selfish_miner_revenue))
 
-        print('honest miner expected reward is : {}'.format(
+        print('Nik honest miner expected reward is : {}'.format(
             (1 - self.alpha) * self.__iteration_number * 100 / self.__iteration_number))
-        print('selfish miner expected reward is : {}'.format(
+        print('Nik selfish miner expected reward is : {}'.format(
             (self.alpha) * self.__iteration_number * 100 / self.__iteration_number))
 
         print('********************************************')
@@ -336,6 +355,28 @@ class NikSelfishMining:
         self.__total_stale_block = 0
 
         self.__iteration_number = 0
+
+        self.time_window = TimeWindow(
+            self.__tow_number, self.__min_tow_block_number, self.__max_tow_block_number)
+
+        self.__private_chain_weight_list = [
+            0 for _ in range(self.weight_size)]
+        self.__public_chain_weight_list = [
+            0 for _ in range(self.weight_size)]
+
+        self.__private_chain_weight = 0
+        self.__public_chain_weight = 0
+
+        self.__current_block_tow = 1
+
+        self.__predicted_K = 2
+
+        self.__weight_decision = False
+        self.__weight_decision_number = 0
+
+        self.vasla = VariableActionSet(
+            3, self.__reward_rate, self.__penalty_rate)
+        self.__first_la_decision = True
 
         return
 

@@ -1,6 +1,12 @@
-from block_creation_status import BlockCreationStatus
-from tow import Tow
-import random
+import sys
+import os
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..')))
+
+import random  # NOQA
+
+from nik_sm.block_creation_status import BlockCreationStatus  # NOQA
+from nik_sm.tow import Tow  # NOQA
 
 
 class TimeWindow:
