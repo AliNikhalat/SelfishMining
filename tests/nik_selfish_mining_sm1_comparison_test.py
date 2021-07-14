@@ -15,7 +15,7 @@ tow_number = 10
 min_tow_block_number = 4
 max_tow_block_number = 6
 
-reward_rate = 0.1
+reward_rate = 0.01
 penalty_rate = 0.01
 
 min_k = 1

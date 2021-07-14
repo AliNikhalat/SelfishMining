@@ -182,7 +182,11 @@ class NikSelfishMining:
             self.chain_evaluation()
             self.reset_attack()
 
-        elif self.__delta == 1 or self.__delta == 2:
+        elif self.__delta == 1:
+            # nothing to do...another state define result of this state
+            return
+
+        elif self.__delta == 2:
             self.chain_evaluation()
             self.reset_attack()
 

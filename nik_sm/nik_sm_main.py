@@ -7,7 +7,7 @@ min_tow_block_number = 4
 max_tow_block_number = 6
 
 selfish_mining_nik = NikSelfishMining(
-    tow_number, min_tow_block_number, max_tow_block_number, False)
+    tow_number, min_tow_block_number, max_tow_block_number, 0.01, 0.01, 1, 3, False)
 selfish_mining_nik.alpha = 0.45
 selfish_mining_nik.gamma = 0.5
 # selfish_mining_nik.print_input_statistic()
