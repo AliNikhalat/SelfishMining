@@ -8,13 +8,16 @@ from matplotlib import pyplot as plt  # NOQA
 
 # Nik Defense
 from nik_sm.block_creation_status import BlockCreationStatus  # NOQA
+from nik_sm.learning_automata_type import LearningAutomataType  # NOQA
 from nik_sm.time_window import TimeWindow  # NOQA
 from nik_sm.learning_automata.variable_action_set import VariableActionSet  # NOQA
+from nik_sm.learning_automata.symmetric_variable_depth_hybrid import SymmetricVariableDepthHybrid  # NOQA
+from nik_sm.learning_automata.asymmetric_variable_depth_hybrid import AsymmetricVariableDepthHybrid  # NOQA
 
 
 class NikSelfishMining:
     def __init__(self, tow_number, min_tow_block_number, max_tow_block_number,
-                 reward_rate, penalty_rate, min_k, max_k, show_log=False):
+                 reward_rate, penalty_rate, min_k, max_k, automata_type, show_log=False):
         self._alpha = 0
         self._gamma = 0
 
@@ -67,14 +70,21 @@ class NikSelfishMining:
         self.__reward_rate = reward_rate
         self.__penalty_rate = penalty_rate
 
+        self.__automata_type = automata_type
         self.vasla = VariableActionSet(
             3, self.__reward_rate, self.__penalty_rate)
+        self.svdhla = SymmetricVariableDepthHybrid(
+            3, 2, self.__reward_rate, self.__penalty_rate, 4)
+        self.avdhla = AsymmetricVariableDepthHybrid(
+            3, [2, 2, 2], self.__reward_rate, self.__penalty_rate, 4)
         self.__first_la_decision = True
 
+    # *****************************************************************************************
     @property
     def alpha(self):
         return self._alpha
 
+    # *****************************************************************************************
     @alpha.setter
     def alpha(self, value):
         if value < 0 or value > 0.5:
@@ -84,10 +94,12 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     @property
     def gamma(self):
         return self._gamma
 
+    # *****************************************************************************************
     @gamma.setter
     def gamma(self, value):
         if value < 0 or value > 1:
@@ -97,20 +109,24 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     @property
     def revenue(self):
         return self.__selfish_miner_revenue
 
+    # *****************************************************************************************
     @property
     def stale_block(self):
         return self.__total_stale_block
 
+    # *****************************************************************************************
     def print_input_statistic(self):
         print('alpha is : {}'.format(self._alpha))
         print('gamma is : {}'.format(self._gamma))
 
         return
 
+    # *****************************************************************************************
     def start_simulate(self, iteration):
         # self.log('start simulating')
 
@@ -147,7 +163,10 @@ class NikSelfishMining:
                 # self.chain_evaluation()
                 # self.reset_tow()
 
-                self.learning_automata_decision()
+                # self.VASLA_decision()
+                # self.SVDHLA_decision()
+                # self.AVDHLA_decision()
+                self.automata_decision()
                 self.__first_la_decision = False
 
                 self.__current_block_tow = 1
@@ -158,6 +177,7 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     def start_selfish_mining(self):
         # self.log('starting selfish mining!')
 
@@ -169,6 +189,7 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     def start_honest_mining(self):
         # self.log('starting honest mining!')
 
@@ -199,12 +220,14 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     def calculating_delta(self):
         self.__delta = self.__private_chain_length - self.__public_chain_length
         # self.log('delta is : {}'.format(self.__delta))
 
         return
 
+    # *****************************************************************************************
     def calculating_weight(self, is_private_block):
         if is_private_block:
             self.__private_chain_weight_list[self.__private_chain_length] = 1
@@ -216,6 +239,7 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     def chain_evaluation(self):
         if self.__private_chain_length - self.__public_chain_length >= self.__predicted_K:
             # Decision based on Length
@@ -243,9 +267,21 @@ class NikSelfishMining:
 
         return
 
-    def learning_automata_decision(self):
+    # *****************************************************************************************
+    def automata_decision(self):
+        if self.__automata_type == LearningAutomataType.VASLA:
+            self.VASLA_decision()
+        elif self.__automata_type == LearningAutomataType.SVDHLA:
+            self.SVDHLA_decision()
+        elif self.__automata_type == LearningAutomataType.AVDHLA:
+            self.AVDHLA_decision()
+
+        return
+
+    # *****************************************************************************************
+    def VASLA_decision(self):
         if not self.__first_la_decision:
-            beta = 1 - (self.__weight_decision_number / self.__tow_number)
+            beta = self.__weight_decision_number / self.__tow_number
             self.vasla.receive_environment_signal(beta)
 
         self.__weight_decision_number = 0
@@ -270,6 +306,69 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
+    def SVDHLA_decision(self):
+        if not self.__first_la_decision:
+            beta = self.__weight_decision_number / self.__tow_number
+            if beta < 0.5:
+                self.svdhla.receive_environment_signal(0)
+            else:
+                self.svdhla.receive_environment_signal(1)
+
+        self.__weight_decision_number = 0
+
+        chosen_action = 0
+        if self.__predicted_K == self.min_K:
+            chosen_action = self.svdhla.choose_action([0, 1])
+        elif self.__predicted_K == self.max_K:
+            chosen_action = self.svdhla.choose_action([1, 2])
+        else:
+            chosen_action = self.svdhla.choose_action([0, 1, 2])
+
+        if chosen_action == 0:
+            # Grow
+            self.__predicted_K += 1
+        elif chosen_action == 1:
+            # Stop
+            pass
+        elif chosen_action == 2:
+            # Shrink
+            self.__predicted_K -= 1
+
+        return
+
+    # *****************************************************************************************
+    def AVDHLA_decision(self):
+        if not self.__first_la_decision:
+            beta = self.__weight_decision_number / self.__tow_number
+            if beta < 0.5:
+                self.avdhla.receive_environment_signal(0)
+            else:
+                self.avdhla.receive_environment_signal(1)
+
+        self.__weight_decision_number = 0
+
+        chosen_action = 0
+        if self.__predicted_K == self.min_K:
+            chosen_action = self.avdhla.choose_action([0, 1])
+        elif self.__predicted_K == self.max_K:
+            chosen_action = self.avdhla.choose_action([1, 2])
+        else:
+            chosen_action = self.avdhla.choose_action([0, 1, 2])
+
+        if chosen_action == 0:
+            # Grow
+            self.__predicted_K += 1
+        elif chosen_action == 1:
+            # Stop
+            pass
+        elif chosen_action == 2:
+            # Shrink
+            self.__predicted_K -= 1
+
+        return
+
+    # *****************************************************************************************
     def calculating_output(self):
         self.__total_mined_block = self.__honest_miners_win_block + \
             self.__selfish_miners_win_block
@@ -282,6 +381,7 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     def print_final_result(self):
 
         print('********************************************')
@@ -310,12 +410,14 @@ class NikSelfishMining:
 
         return
 
+    # *****************************************************************************************
     def log(self, log_message):
         if self.__show_log:
             print(log_message)
 
         return
 
+    # *****************************************************************************************
     def reset_tow(self):
         self.__private_chain_weight_list = [
             0 for _ in range(self.weight_size)]
@@ -330,6 +432,7 @@ class NikSelfishMining:
         self.__private_chain_length = 0
         self.__public_chain_length = 0
 
+    # *****************************************************************************************
     def reset_attack(self):
         self.__private_chain_weight_list = [
             0 for _ in range(self.weight_size)]
@@ -342,6 +445,7 @@ class NikSelfishMining:
         self.__private_chain_length = 0
         self.__public_chain_length = 0
 
+    # *****************************************************************************************
     def reset(self):
         random.seed(None)
 
@@ -380,10 +484,15 @@ class NikSelfishMining:
 
         self.vasla = VariableActionSet(
             3, self.__reward_rate, self.__penalty_rate)
+        self.svdhla = SymmetricVariableDepthHybrid(
+            3, 2, self.__reward_rate, self.__penalty_rate, 4)
+        self.avdhla = AsymmetricVariableDepthHybrid(
+            3, [2, 2, 2], self.__reward_rate, self.__penalty_rate, 4)
         self.__first_la_decision = True
 
         return
 
+    # *****************************************************************************************
     def visualize_data(self, iteration_number):
         alpha_values = [x / 100 for x in range(51) if x % 5 == 0]
         selfish_revenue_value_0 = []
