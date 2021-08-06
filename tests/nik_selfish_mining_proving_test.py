@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.abspath(
 from matplotlib import pyplot as plt  # NOQA
 
 from nik_sm.nik_sm_strategy import NikSelfishMining  # NOQA
+from nik_sm.learning_automata_type import LearningAutomataType  # NOQA
 
 iteration_number = 10000
 
@@ -21,7 +22,7 @@ max_k = 3
 
 
 selfish_mining_nik = NikSelfishMining(
-    tow_number, min_tow_block_number, max_tow_block_number, reward_rate, penalty_rate, min_k, max_k, False)
+    tow_number, min_tow_block_number, max_tow_block_number, reward_rate, penalty_rate, min_k, max_k, LearningAutomataType.AVDHLA, False)
 selfish_mining_nik.alpha = 0.45
 selfish_mining_nik.gamma = 0
 # selfish_mining_nik.print_input_statistic()
@@ -86,7 +87,7 @@ plt.plot(
 # plt.plot(alpha_values, honest_revenue_value,
 #          color='k', label='honest mining')
 
-plt.title('Nik Selfish Mining-Ex3')
+plt.title('Nik Selfish Mining(AVDHLA)-Ex3.3')
 plt.xlabel('Pool size')
 plt.ylabel('Relative Revenue')
 

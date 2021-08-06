@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt  # NOQA
 from collections import OrderedDict  # NOQA
 
 from nik_sm.nik_sm_strategy import NikSelfishMining  # NOQA
+from nik_sm.learning_automata_type import LearningAutomataType  # NOQA
 from sm1.sm1_strategy import SelfishMiningOne  # NOQA
 
 iteration_number = 10000
@@ -23,7 +24,7 @@ min_k = 1
 max_k = 3
 
 nik_defense_1 = NikSelfishMining(
-    tow_number, min_tow_block_number_1, max_tow_block_number_1, reward_rate, penalty_rate, min_k, max_k, False)
+    tow_number, min_tow_block_number_1, max_tow_block_number_1, reward_rate, penalty_rate, min_k, max_k, LearningAutomataType.AVDHLA, False)
 nik_defense_1.gamma = 0.5
 
 
@@ -31,14 +32,14 @@ min_tow_block_number_2 = 8
 max_tow_block_number_2 = 10
 
 nik_defense_2 = NikSelfishMining(
-    tow_number, min_tow_block_number_2, max_tow_block_number_2, reward_rate, penalty_rate, min_k, max_k, False)
+    tow_number, min_tow_block_number_2, max_tow_block_number_2, reward_rate, penalty_rate, min_k, max_k, LearningAutomataType.AVDHLA, False)
 nik_defense_2.gamma = 0.5
 
 min_tow_block_number_3 = 14
 max_tow_block_number_3 = 16
 
 nik_defense_3 = NikSelfishMining(
-    tow_number, min_tow_block_number_3, max_tow_block_number_3, reward_rate, penalty_rate, min_k, max_k, False)
+    tow_number, min_tow_block_number_3, max_tow_block_number_3, reward_rate, penalty_rate, min_k, max_k, LearningAutomataType.AVDHLA, False)
 nik_defense_3.gamma = 0.5
 
 
@@ -122,7 +123,7 @@ plt.plot(alpha_values, ideal_defense_revenue_value,
 plt.plot(
     alpha_values, upper_bound_value, color='g', label='Upper Bound', linestyle=linestyles_dict['dashdotdotted'], linewidth=1.5)
 
-plt.title('ُNik Defense Blocks in Tow Based Revenue Comparison-Ex6')
+plt.title('ُNik Defense(AVDHLA) Blocks in Tow Based Revenue Comparison-Ex3.3')
 plt.xlabel('Pool size')
 plt.ylabel('Relative Revenue')
 
@@ -139,7 +140,7 @@ plt.plot(
     alpha_values, nik_defense_3_stale_block, color='y', label='BlocksInTow=15', linestyle=linestyles_dict['densely dashed'], linewidth=1.5)
 
 
-plt.title('ُNik Defense Blocks in Tow Based Stale Block Comparison-Ex6')
+plt.title('ُNik Defense(AVDHLA) Blocks in Tow Based Stale Block Comparison-Ex3.3')
 plt.xlabel('Pool size')
 plt.ylabel('ُStale Block Number')
 

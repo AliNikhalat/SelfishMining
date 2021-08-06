@@ -21,7 +21,7 @@ class NikSelfishMining:
         self._alpha = 0
         self._gamma = 0
 
-        self.weight_size = 10000
+        self.weight_size = 5000
 
         self.__tow_number = tow_number
         self.__min_tow_block_number = min_tow_block_number
