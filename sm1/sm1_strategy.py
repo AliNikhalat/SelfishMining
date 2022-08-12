@@ -1,21 +1,17 @@
-# Nik Defence
-from block_creation_status import BlockCreationStatus
-from time_window import TimeWindow
-import random
-from matplotlib import pyplot as plt
+# first strategy by using Sirer Aritcla published in 2014
+import sys
+import os
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..')))
+
+import random  # NOQA
+from matplotlib import pyplot as plt  # NOQA
 
 
-class NikSelfishMining:
-    def __init__(self, tow_number, min_tow_block_number, max_tow_block_number, show_log=False):
+class SelfishMiningOne:
+    def __init__(self, show_log=False):
         self._alpha = 0
         self._gamma = 0
-
-        self.tow_number = tow_number
-        self.min_tow_block_number = min_tow_block_number
-        self.max_tow_block_number = max_tow_block_number
-
-        self.time_window = TimeWindow(
-            tow_number, min_tow_block_number, max_tow_block_number)
 
         self.__show_log = show_log
 
@@ -35,16 +31,6 @@ class NikSelfishMining:
         self.__total_stale_block = 0
 
         self.__iteration_number = 0
-
-        self.__predicted_K = 2
-
-        self.__published = False
-        self.__private_chain_weight = [0 for _ in range(max_tow_block_number)]
-        self.__public_chain_weight = [0 for _ in range(max_tow_block_number)]
-        self.__current_block_tow = 1
-        self.__average_tow = self.time_window.get_average_tow()
-
-        self.__fork_created = False
 
     @property
     def alpha(self):
@@ -72,6 +58,14 @@ class NikSelfishMining:
 
         return
 
+    @property
+    def revenue(self):
+        return self.__selfish_miner_revenue
+
+    @property
+    def stale_block(self):
+        return self.__total_stale_block
+
     def print_input_statistic(self):
         print('alpha is : {}'.format(self._alpha))
         print('gamma is : {}'.format(self._gamma))
@@ -79,124 +73,86 @@ class NikSelfishMining:
         return
 
     def start_simulate(self, iteration):
-        #self.log('start simulating')
+        self.log('start simulating')
 
         self.__iteration_number = iteration
 
-        for _ in range(iteration):
-            #self.log("found a new block")
+        for i in range(iteration):
+            self.log("found a new block")
 
             random_number = random.random()
 
+            self.calculating_delta()
+
             # Mining Process
             if random_number < self._alpha:
-                self.calculating_weight(True)
                 self.start_selfish_mining()
             else:
-                self.calculating_weight(False)
                 self.start_honest_mining()
-
-            block_creation_response = self.time_window.create_a_block()
-            if block_creation_response == BlockCreationStatus.EndTow:
-                self.chain_evaluation()
-                self.reset_tow()
-            elif block_creation_response == BlockCreationStatus.EndTimeWindow:
-                self.time_window = TimeWindow(
-                    self.tow_number, self.min_tow_block_number, self.max_tow_block_number)
-                self.chain_evaluation()
-                self.reset_tow()
-            else:
-                self.__current_block_tow += 1
 
         self.calculating_output()
 
         return
 
     def start_selfish_mining(self):
-        #self.log('starting selfish mining!')
+        self.log('starting selfish mining!')
 
         self.__private_chain_length += 1
-        self.calculating_delta()
 
-        if self.__published:
-            self.__selfish_miners_win_block += 1
-            return
-
-        if self.__delta < self.__predicted_K / 2 and self.__current_block_tow > self.__average_tow * 0.8:
-            # self.log('1')
-            self.__published = True
+        if self.__delta == 0 and self.__private_chain_length == 2:
+            # print('1')
+            self.__selfish_miners_win_block += 2
+            self.__private_chain_length = 0
+            self.__public_chain_length = 0
 
         return
 
     def start_honest_mining(self):
-        # self.log('starting honest mining!')
-
-        if self.__delta == 0 and self.__private_chain_length == 0:
-            self.__honest_miners_win_block += 1
-            return
+        self.log('starting honest mining!')
 
         self.__public_chain_length += 1
-        self.calculating_delta()
 
-        if self.__published:
-            return
+        if self.__delta == 0 and self.__private_chain_length == 0:
+            # print('2')
+            self.__honest_miners_win_block += 1
+            self.__private_chain_length = 0
+            self.__public_chain_length = 0
 
-        if self.__current_block_tow > self.__average_tow * 0.8:
-            if self.__delta == self.__predicted_K - 1:
-                # self.log('2')
-                # Risk & Continue to mine
-                return
-            elif self.__delta == self.__predicted_K - 2:
-                # self.log('3')
-                # self.__published = True
-                return
+        elif self.__delta == 0 and self.__private_chain_length == 1:
+            # print('3')
+            gamma_random = random.random()
+
+            if gamma_random < self.gamma:
+                self.__selfish_miners_win_block += 1
+                self.__honest_miners_win_block += 1
+                self.__private_chain_length = 0
+                self.__public_chain_length = 0
             else:
-                # self.log('4')
-                self.__published = True
-                return
-        else:
-            # self.log('5')
-            # Risk & Continue to mine
+                self.__honest_miners_win_block += 2
+                self.__private_chain_length = 0
+                self.__public_chain_length = 0
+
+        elif self.__delta == 1:
+            # print('4')
+            # nothing to do...another state define result of this state
             return
+
+        elif self.__delta == 2:
+            # print('5')
+            self.__selfish_miners_win_block += self.__private_chain_length
+            self.__public_chain_length = 0
+            self.__private_chain_length = 0
+
+        elif self.__delta > 2:
+            # print('6')
+            # nothing to do...another state define result of this state
+            return
+
+        return
 
     def calculating_delta(self):
         self.__delta = self.__private_chain_length - self.__public_chain_length
-        # self.log('delta is : {}'.format(self.__delta))
-
-        return
-
-    def calculating_weight(self, is_private_block):
-        if is_private_block:
-            if self.__public_chain_weight[self.__private_chain_length] == 0:
-                self.__private_chain_weight[self.__private_chain_length] = 1
-        else:
-            if self.__private_chain_weight[self.__public_chain_length] == 0 and self.__fork_created == True:
-                self.__public_chain_weight[self.__public_chain_length] = 1
-
-        return
-
-    def chain_evaluation(self):
-        if self.__private_chain_length - self.__public_chain_length >= self.__predicted_K:
-            # Decision based on Length
-            self.__selfish_miners_win_block += self.__private_chain_length
-        elif self.__public_chain_length - self.__private_chain_length >= self.__predicted_K:
-            # Decision based on Length
-            self.__honest_miners_win_block += self.__public_chain_length
-        else:
-            # Decision based on Wight
-            private_chain_weight = sum(self.__private_chain_weight)
-            public_chain_weight = sum(self.__public_chain_weight)
-
-            if private_chain_weight > public_chain_weight:
-                self.__selfish_miners_win_block += self.__private_chain_length
-            elif public_chain_weight > private_chain_weight:
-                self.__honest_miners_win_block += self.__public_chain_length
-            else:
-                random_number = random.random()
-                if random_number < 0.5:
-                    self.__selfish_miners_win_block += self.__private_chain_length
-                else:
-                    self.__honest_miners_win_block += self.__public_chain_length
+        self.log('delta is : {}'.format(self.__delta))
 
         return
 
@@ -245,17 +201,6 @@ class NikSelfishMining:
             print(log_message)
 
         return
-
-    def reset_tow(self):
-        self.__published = False
-        self.__private_chain_weight = [
-            0 for _ in range(self.max_tow_block_number)]
-        self.__public_chain_weight = [
-            0 for _ in range(self.max_tow_block_number)]
-        self.__current_block_tow = 1
-
-        self.__private_chain_length = 0
-        self.__public_chain_length = 0
 
     def reset(self):
         random.seed(None)
@@ -324,7 +269,7 @@ class NikSelfishMining:
         plt.plot(alpha_values, honest_revenue_value,
                  color='k', label='honest mining')
 
-        plt.title('Nik Selfish Mining')
+        plt.title('Selfish Mining')
         plt.xlabel('Pool size')
         plt.ylabel('Relative Revenue')
 
